@@ -1,5 +1,8 @@
 import json
 from web3 import Web3
+import pytz
+from datetime import datetime
+
 
 #setup 
 ganache_url = "http://127.0.0.1:7545"
@@ -10,12 +13,12 @@ web3 =Web3(Web3.HTTPProvider(ganache_url))
 print(web3.isConnected())
 
 #define signing account for transactions
-web3.eth.defaultAccount = web3.eth.accounts[1]
+web3.eth.defaultAccount = web3.eth.accounts[0]
 print(web3.eth.accounts[0])
 print(web3.eth.accounts[1])
 
 #define smart contract account - different address for each deployment
-address = web3.toChecksumAddress('0xB5C91C3d5346772ddD9d8178d55B99f5F37F213d')
+address = web3.toChecksumAddress('0x3B79cab73D2d22EB642c32c06a10FF8f4A4e09Ef')
 
 #how to import abi and bytecode using truffle 
 PATH_TRUFFLE_WK = 'C:/Users/Inessa/Desktop/4th_Year/FYP/Methodology_Eth/energy'
@@ -56,9 +59,15 @@ print("Test2 Complete")
 
 ##Test 3: reading data and writing transactions using smart contract, simple Peer + Trade contract
 #address s, address b, uint amount, uint price_c
-sender = str(web3.eth.accounts[1])
-buyer = str(web3.eth.accounts[0])
-tx_hash = contract.functions.addTradeBid(sender, buyer, 9, 80).transact()
+sender = str(web3.eth.accounts[0])
+buyer = str(web3.eth.accounts[1])
+cat = pytz.timezone('Africa/Johannesburg')
+today = datetime.now(tz = cat)
+time_per = today.hour
+date = datetime.date(datetime.now(tz = cat))
+date = str(date)
+
+tx_hash = contract.functions.addTradeBid(date, time_per, sender, buyer, 9, 80).transact()
 web3.eth.waitForTransactionReceipt(tx_hash)
 
 #print('Added a trade bid...: {}'.format(
@@ -72,7 +81,7 @@ web3.eth.waitForTransactionReceipt(tx_hash)
 ##calling the first trade bid stored in trades array
 print("Test3 complete")
 print('Added a trade bid. Take a look!: {}'.format(
-   contract.functions.trades(0).call()
+   contract.functions.trade_bids(0).call()
 ))
 
 ##print the latest block
@@ -80,7 +89,8 @@ print('Added a trade bid. Take a look!: {}'.format(
 #print(latest)
 
 ##Test 4: testing reading data and writing transactions, peer+trade+local residuals
-sender = str(web3.eth.accounts[1])
+#sender = str(web3.eth.accounts[1])
+sender = '0x6C6f8c9b409480EFFA632284b5058ebAd48F1fcc'
 tx_hash1 = contract.functions.addLocalRes(sender, 1234).transact()
 web3.eth.waitForTransactionReceipt(tx_hash1)
 
@@ -88,4 +98,22 @@ print('Added a local residual.  Take a look!: {}'.format(
    contract.functions.localres(sender).call()
 ))
 
+
 print("Test4 complete")
+
+##Test 5: testing writing to approved Trades to the smart contract, createTrade
+sender = web3.eth.accounts[0]
+buyer = web3.eth.accounts[1]
+temp = "2020_10_11_0_2_1"
+
+tx_hash2 = contract.functions.createTrade(sender, buyer, 10, 87, temp).transact()
+
+web3.eth.waitForTransactionReceipt(tx_hash2)
+
+print('Added a trade.  Take a look!: {}'.format(
+   contract.functions.approved_trades(temp).call()
+))
+
+print("Test 5 complete")
+
+
