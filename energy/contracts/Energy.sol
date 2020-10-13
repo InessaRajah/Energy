@@ -1,16 +1,21 @@
 pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
 
 contract Energy {
     //public state variables are accessible by everyone who invokes contract on the network 
     //this contract assumes that every member of the blockchain is a member of the microgrid i.e. is able to participate in trades
     //add a deletePeers() function
+        
+    //set these tolerances in constructor
+    int public pri_tol;
+    int public dual_tol;
 
     //constructor: lists registered peers and admin account
     //change for each ganache instance
      constructor () public {
         //set admin user - needed for testing
         admin = Admin(0x28533267708123eB23D50c34a49ed7eB0D0c06a5);
+        pri_tol = 7;
+        dual_tol =7;
         //adding peers for testing
         //addPeer(0x28533267708123eB23D50c34a49ed7eB0D0c06a5, true, 1);
         //addPeer(0xAedA4d57bf6be1e2d68D08f0E6D471E0fB27f4A7, true, 1);
@@ -26,7 +31,7 @@ contract Energy {
 
     // Model a Peer
     struct Peer {
-        uint id;
+        int id;
         address account;
         bool prosumer;
         uint8 building; //0 for commercial and 1 for residential
@@ -59,7 +64,7 @@ contract Energy {
     //add peer's address to list of peers that are connected in the microgrid- only admin can do this
     function addPeer(address acc, bool role, uint8 build) public{
         require(msg.sender == admin.admin_account);
-        require(peers[acc].id == uint(0x0));
+        require(peers[acc].id == int(0x0));
         peersCount ++;
         peers[acc] = Peer(peersCount, acc, role, build, false);
     }
@@ -69,9 +74,9 @@ contract Energy {
     // Fetch Peers
     mapping(address => Peer) public peers;
     //map peers to an integer id
-    mapping(uint => Peer) public peersID;
+    //mapping(int => Peer) public peersID;
     // Store Peers Count
-    uint public peersCount;
+    int public peersCount;
 
     function startTradingPer(string memory date_set, uint time_period) public {
             require(msg.sender == admin.admin_account);
@@ -89,6 +94,9 @@ contract Energy {
             global_pres = 0;
             global_dres = 0;
             is_optimal = false;
+            trade_penCount = 0;
+            numApprovedTrades =0;
+            delete approved;
 
     }
 
@@ -101,8 +109,7 @@ contract Energy {
         require(peers[msg.sender].account == msg.sender);
         //admin needs to have initiated trading period
         require(init);
-        //peer cannot register twice to participate in trading
-        require(peers[msg.sender].isPeerActive == false);
+        require(!peers[msg.sender].isPeerActive);
         peersTrading ++;
         peers[msg.sender].isPeerActive = true;
     }
@@ -121,11 +128,16 @@ contract Energy {
         int kwh; //need to decide on scaling factor
         uint price; //given in cents
         uint iteration;
+        int id;
     }
     
+    int id_set;
 
     // list of trade_bids for current iteration for current time_period
     Trade_bid [] public trade_bids; 
+
+    //create mapping of trade_bids to trade ids
+    mapping(int => Trade_bid) public trade_bids_mapping;
 
     //add trade bid to list of trade bids for this iteration- assumes peer won't submit duplicate trade bids 
     function addTradeBid (string memory date_peer, uint time_period, address s, address buy, int amount, uint price_c) public {
@@ -146,8 +158,11 @@ contract Energy {
         require(time_period==time_per);
         //requires peer to insert correct date
         require(keccak256(abi.encodePacked(date)) == keccak256(abi.encodePacked(date_peer)));
-        trade_bids.push(Trade_bid(date, time_period, s, buy, amount, price_c, iteration));
-        if (tradeCountIter == 0){iteration++;}
+        if (tradeCountIter ==0){iteration++;}
+        //set the id
+        id_set = (peers[s].id * 10)+ (peers[buy].id);
+        trade_bids.push(Trade_bid(date, time_period, s, buy, amount, price_c, iteration, id_set));
+        trade_bids_mapping[id_set] = Trade_bid(date, time_period, s, buy, amount, price_c, iteration, id_set);
         tradeCountIter++;
         
     }
@@ -164,7 +179,6 @@ contract Energy {
         global_pres = 0;
         global_dres = 0;
         is_optimal = false;
-        delete trades_pending;
 
     }
     struct localRes{
@@ -189,9 +203,6 @@ contract Energy {
     int public global_pres;
     int public global_dres;
 
-    //set these tolerances in constructor
-    int public pri_tol;
-    int public dual_tol;
 
     //is iteration complete? i.e. have all local residuals for this iteration been submitted
     bool public iteration_complete;
@@ -236,7 +247,7 @@ contract Energy {
         uint time_period;
         address from;
         address to; 
-        uint kwh;
+        int kwh;
         uint price_c;
         int id; //make an id for trade using buyer and seller
         bool approve_from;
@@ -245,33 +256,75 @@ contract Energy {
 
     }
 
-
-    //create mapping for id to approved trades between those added peers for this time period
-    mapping (int => Trade) public approved_trades;
+   
+   //store pending trades for this time period.  Pending trades are trades that have been created by sender but are pending approval from recipient in order to be binding.
     Trade [] public trades_pending;
+    uint public trade_penCount;
 
+    int private trade_id;
     //create counter for trades
     //check if tradeCounterIter is correct and that localresCounter == peersCount for trade bid to be made
-    function createTrade(string memory date_peer, uint time_period, address from, address to, uint amount, uint price, int id) public {
+    function createTrade(string memory date_peer, uint time_period, address from, address to, int amount, uint price) public {
         require(msg.sender == from);
         require(msg.sender!=to);
         require(peers[msg.sender].isPeerActive);
         require(peers[to].isPeerActive);
         require(time_period==time_per);
+        require(0<=amount);
         //requires peer to insert correct date
         require(keccak256(abi.encodePacked(date)) == keccak256(abi.encodePacked(date_peer)));
         //make array of created trades for that time period
-        trades_pending.push(Trade(date, time_period, from, to, amount, price, id, true, false, is_optimal));
+        trade_id = (peers[from].id) * 10 + peers[to].id;
+        if ((trade_bids_mapping[trade_id].kwh == amount) && (trade_bids_mapping[trade_id].price==price)){
+
+            trades_pending.push(Trade(date, time_period, from, to, amount, price, trade_id, true, false, is_optimal));
+            trade_penCount ++;
+        }
+        
+        else {
+
+            trades_pending.push(Trade(date, time_period, from, to, amount, price, trade_id, true, false, false));
+            trade_penCount ++;
+        }
 
     }
 
-    //can approve trades at any point in the day- doesn't have to be in time period or when trading period is initialised
-    function approveTrade(Trade memory trade, string memory date_approved) public {
-        require(msg.sender == trade.from);
-        require(keccak256(abi.encodePacked(date)) == keccak256(abi.encodePacked(date_approved)));
-        trade.approve_to=true;
-        approved_trades[trade.id]  = trade;
 
+
+    //create mapping for id to approved trades between those added peers for this time period
+    mapping (int => Trade) public approved_trades; //do I need this mapping?
+    Trade [] public approved; 
+
+    //running counter of how many trades have been approved for this time period
+    uint public numApprovedTrades;
+
+    function approveTrade(string memory trade_date, uint trade_time, address trade_from, address trade_to, int trade_kwh, uint trade_price_c, int id, bool trade_approve_from, bool trade_approve_to, bool trade_optimal, string memory date_approved, uint time_approved, uint trades_pending_ind) public {
+            
+            require(msg.sender == trade_to);
+            //trade must be listed have been created correctly
+            require(trades_pending[trades_pending_ind].from == trade_from);
+            require(trades_pending[trades_pending_ind].kwh == trade_kwh);
+            require(trades_pending[trades_pending_ind].price_c == trade_price_c);
+            require(keccak256(abi.encodePacked(trade_date)) == keccak256(abi.encodePacked(date_approved)));
+            require(time_approved==trade_time);
+            require(!trade_approve_to);
+            approved_trades[id]  = Trade(trade_date, trade_time, trade_from, trade_to, trade_kwh, trade_price_c, id, trade_approve_from, true, trade_optimal);
+            approved.push(Trade(trade_date, trade_time, trade_from, trade_to, trade_kwh, trade_price_c, id, trade_approve_from, true, trade_optimal));
+            numApprovedTrades++;
+
+
+    
+    }
+
+    //peers need to call this to indicate that they have completed their trading for this time period
+    function deregisterPeer() public {
+        //peer needs to have been added by admin
+        require(peers[msg.sender].account == msg.sender);
+        //admin needs to have initiated trading period
+        require(peers[msg.sender].isPeerActive);
+        peersTrading --;
+        peers[msg.sender].isPeerActive = false;
     }
     
 }
+
