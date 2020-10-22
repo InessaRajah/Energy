@@ -1,17 +1,7 @@
 import gurobipy as gb
 import numpy as np
 
-agent = {'Index': 0, 'Type': 'Prosumer', 'AssetNum': 2, 'Assets': { 0: {'Type': 'Battery', 'a': 0.01, 'b': 0.02, 'ub' : 5, 'lb': -5}, 1: {'Type': 'Grid', 'a': 0.1, 'b': 0.2, 'ub' : 20, 'lb' : -20}}}
-partners = np.array([2, 3])
-preferences = [1, 1]
-rho = 0.01
-
-def createPlayers(agents, part, preferences, penalty_factor):
-    players = np.zeros(len(agents))
-    for i in range(len(agents)):
-        p = Prosumer(agents[i], part, preferences, penalty_factor)
-        players[i] = p
-    return players
+#Class taken from code created by Baroche et. al in the following paper : https://ieeexplore.ieee.org/document/8810474
 
 #class which can have objects set
 class expando(object):

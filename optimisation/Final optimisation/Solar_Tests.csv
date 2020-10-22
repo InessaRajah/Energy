@@ -1,0 +1,9 @@
+,Agent#,Time Period,Solar Irradiation (W/m^2),Num_solar panels,Solar Output energy (kWh)
+0,agent0,0,733.18,7,0.27
+1,agent1,0,733.18,7,0.27
+2,agent2,0,733.18,5,0.2
+3,agent3,0,733.18,1,0.04
+4,agent0,1,438.14,7,0.16
+5,agent1,1,438.14,7,0.16
+6,agent2,1,438.14,5,0.12
+7,agent3,1,438.14,1,0.02
