@@ -214,7 +214,9 @@ contract Energy {
     //add trade bid to list of trade bids for this iteration- assumes that each peer will not submit more than one local res per iteration
     function addLocalRes (int p_res, int d_res) public {
         //all trade bids need to be submitted for local residuals to be submitted
-        require(tradeCountIter == ((peersTrading)*(peersTrading-1)));
+        if (iteration != 0){
+            require(tradeCountIter == ((peersTrading)*(peersTrading-1)));
+        }
         require(init);
         require(!iteration_complete);
         //requires that person submitting local residual to blockchain is a member of the microgrid
