@@ -13,13 +13,14 @@ import functions as func
 #note that in smart contract and saved files= agents are saved starting from 1 but because of indexing in python, agent numbers start at 0
 #connect to blockchain network
 ganache_url = "http://127.0.0.1:7545"
+#ganache_url = "http://127.0.0.1:5354"
 
 web3 =Web3(Web3.HTTPProvider(ganache_url))
 
 #Check if node is connected
 print(web3.isConnected())
 
-address = web3.toChecksumAddress('0x739f5C1F9D3A0F6448c07381fC8389d4E9652141')
+address = web3.toChecksumAddress('0xFCb00692FAA29a7877CACf928A05C08c9b44Da35')
 
 #how to import abi and bytecode using truffle 
 PATH_TRUFFLE_WK = 'C:/Users/Inessa/Desktop/4th_Year/FYP/Methodology_Eth/energy'
@@ -34,32 +35,32 @@ contract = web3.eth.contract(address=address, abi =abi)
 web3.eth.defaultAccount = web3.eth.accounts[0]
 
 #add peer 1 
-#tx_hash = contract.functions.addPeer('0xAedA4d57bf6be1e2d68D08f0E6D471E0fB27f4A7', True, 1).transact()
+#tx_hash = contract.functions.addPeer('0x9EcFfD05649930d417185E79ad2203F8E8735784', True, 1).transact()
 #web3.eth.waitForTransactionReceipt(tx_hash)
 #print("Successfully added peer 1")
 #print("Take a look!")
-#print(contract.functions.peers('0xAedA4d57bf6be1e2d68D08f0E6D471E0fB27f4A7').call())
+#print(contract.functions.peers('0x9EcFfD05649930d417185E79ad2203F8E8735784').call())
 #add peer 2
-#tx_hash = contract.functions.addPeer('0xd69eDf8528349C92B4Ec767402A66190Db49f937', True, 1).transact()
+#tx_hash = contract.functions.addPeer('0x60f798cd72C31df6f47fB9F00C0491e702fB3851', True, 1).transact()
 #web3.eth.waitForTransactionReceipt(tx_hash)
 #print("Successfully added peer 2")
 #print("Take a look!")
-#print(contract.functions.peers('0xd69eDf8528349C92B4Ec767402A66190Db49f937').call())
-#print("Test1 passed")
+#print(contract.functions.peers('0x60f798cd72C31df6f47fB9F00C0491e702fB3851').call())
+
 # if you try to re-add a peer that already is part of the network- you'll get errors
 
 #add an additional two peers- makes four peers in total
-#tx_hash = contract.functions.addPeer('0x82CdAb6b82D04Dd9E6ed980D10d01B06479B8E62', True, 1).transact()
+#tx_hash = contract.functions.addPeer('0xf670B43Fb72b16cD834D43A6BF0f429163B383F2', True, 1).transact()
 #web3.eth.waitForTransactionReceipt(tx_hash)
 #print("Successfully added peer 3")
 #print("Take a look!")
-#rint(contract.functions.peers('0x82CdAb6b82D04Dd9E6ed980D10d01B06479B8E62').call())
+#print(contract.functions.peers('0xf670B43Fb72b16cD834D43A6BF0f429163B383F2').call())
 #add peer 4
-#tx_hash = contract.functions.addPeer('0x6140752C55475909D4FF6B00200eeadCd7Dcb50a', True, 1).transact()
+#tx_hash = contract.functions.addPeer('0x93EC6Ea2d6399E6801D294cb562102C4c03A30A8', True, 1).transact()
 #web3.eth.waitForTransactionReceipt(tx_hash)
 #print("Successfully added peer 4")
 #print("Take a look!")
-#print(contract.functions.peers('0x6140752C55475909D4FF6B00200eeadCd7Dcb50a').call())
+#print(contract.functions.peers('0x93EC6Ea2d6399E6801D294cb562102C4c03A30A8').call())
 
 #list description of all agents
 agents = []
@@ -118,24 +119,31 @@ time = today.hour
 today = datetime.date(datetime.now(tz = cat))
 date = str(today)
 
+for i in range(num_agents):
+    web3.eth.defaultAccount = web3.eth.accounts[i+1]
+    tx_hash = contract.functions.deregisterPeer().transact()
+    web3.eth.waitForTransactionReceipt(tx_hash)
+print('Peers deregistered')
+
+web3.eth.defaultAccount = web3.eth.accounts[0]
 tx_hash = contract.functions.startTradingPer(date, time).transact()
 web3.eth.waitForTransactionReceipt(tx_hash)
-if ((contract.functions.init().call()) and (contract.functions.iteration_complete().call()==contract.functions.is_optimal().call()==0) and (contract.functions.iteration().call()==contract.functions.localresCounter().call()==0) and (contract.functions.tradeCountIter().call() == contract.functions.trade_penCount().call()== contract.functions.numApprovedTrades().call()==0)):
-    print("Trading period started")
+#if ((contract.functions.init().call()) and (contract.functions.iteration_complete().call()==contract.functions.is_optimal().call()==0) and (contract.functions.iteration().call()==contract.functions.localresCounter().call()==0) and (contract.functions.tradeCountIter().call() == contract.functions.trade_penCount().call()== contract.functions.numApprovedTrades().call()==0)):
+print("Trading period started")
 
 #register peers to be involved in blockchain trading
 #set signing peer to be peer 1 who has been added to network by admin
 # if you try to register peer twice - will get an error
-#for i in range(1, num_agents+1):
-#    web3.eth.defaultAccount = web3.eth.accounts[i]
-#    print(web3.eth.defaultAccount)
-#    tx_hash = contract.functions.registerPeer().transact()
-#    print("Registering peer", i, "to trade in time period")
-#    web3.eth.waitForTransactionReceipt(tx_hash)
-#    print("Peer", i, "successfully registered.  Take a look!")
-#    address = str(web3.eth.accounts[i])
-#    peer1 = contract.functions.peers(address).call()
-#    print(peer1)
+for i in range(1, num_agents+1):
+    web3.eth.defaultAccount = web3.eth.accounts[i]
+    print(web3.eth.defaultAccount)
+    tx_hash = contract.functions.registerPeer().transact()
+    print("Registering peer", i, "to trade in time period")
+    web3.eth.waitForTransactionReceipt(tx_hash)
+    print("Peer", i, "successfully registered.  Take a look!")
+    #address = str(web3.eth.accounts[i])
+    #peer1 = contract.functions.peers(address).call()
+    #print(peer1)
 
 #look at one time period for this test:
 time_period = 0
@@ -208,14 +216,14 @@ for t in range(0,2):
                 primal_res = round(primal_res)
                 dual_res = players[i].Res_dual * 10000
                 dual_res = round(dual_res)
-                if (t==0):
+                if (t==1):
                     print(primal_res)
                     print(dual_res)
                     sender = str(web3.eth.accounts[i+1])
-                    #print(web3.eth.defaultAccount)
-                    #print('init', contract.functions.init().call())
-                    #print('iteration complete?', contract.functions.iteration_complete().call())
-                    #print('num_trade bids:', contract.functions.tradeCountIter().call())
+                    print(web3.eth.defaultAccount)
+                    print('init', contract.functions.init().call())
+                    print('iteration complete?', contract.functions.iteration_complete().call())
+                    print('num_trade bids:', contract.functions.tradeCountIter().call())
                     tx_hash = contract.functions.addLocalRes(primal_res, dual_res).transact()
                     web3.eth.waitForTransactionReceipt(tx_hash)
                     print("Added a local residual.  Take a look!")
@@ -245,7 +253,8 @@ for t in range(0,2):
                 print(price_c)
                 tx_hash = contract.functions.addTradeBid(date, time, sender, buyer, amount, price_c).transact()
                 web3.eth.waitForTransactionReceipt(tx_hash)
-                trade_bids = contract.functions.trade_bids(countTrades).call()
+                tradeID = (i+1)*10 + p[j].tolist() + 1
+                trade_bids = contract.functions.trade_bids_mapping(tradeID).call()
                 countTrades = countTrades + 1
                 print("Trade bid", i+1, "to", p[j]+1 ,"submitted.  Take a look!")
                 print(trade_bids)
@@ -265,13 +274,10 @@ for t in range(0,2):
                 peer_from = p[j] + 1
                 peer_from = peer_from.tolist()
                 trade_id = peer_from*10 + peer_id
-                print(trade_id)
                 trade_temp = contract.functions.trade_bids_mapping(trade_id).call()
-                print(trade_temp[4])
                 pos = p[j]
                 pos = pos.tolist()
                 Trades[i, pos] = trade_temp[4]/10000
-        print(Trades)
         temp = Trades
 
 
@@ -288,9 +294,8 @@ for t in range(0,2):
                 print('Sender', sender)
                 to = p[j] +1
                 to = str(web3.eth.accounts[to])
-                print(to)
+                print("To", to)
                 amount = temp[p[j], i] * 10000
-                print('amount:', amount)
                 amount = amount.tolist()
                 amount = round(amount)
                 #if you are the one paying to consume power- create the trade
@@ -298,7 +303,8 @@ for t in range(0,2):
                     price_c = Prices[:,i][p[j]] * 10000
                     price_c = price_c.tolist()
                     price_c = round(price_c)
-                    print(price_c)
+                    print('price:', price_c)
+                    print('amount:', amount)
                     cat = pytz.timezone('Africa/Johannesburg')
                     today = datetime.time(datetime.now(tz = cat))
                     time = today.hour
@@ -309,15 +315,12 @@ for t in range(0,2):
                     id_set = (s[0] * 10)+ (b[0])
                     bid = contract.functions.trade_bids_mapping(id_set).call()
                     print('Trade bid used to create trade:', bid)
-                    print('init', contract.functions.init().call())
-                    print('iteration complete?', contract.functions.iteration_complete().call())
-                    tx_hash = contract.functions.createTrade(date, time, sender, to, 0, 0).transact()
+                    tx_hash = contract.functions.createTrade(date, time, sender, to, amount, price_c).transact()
                     web3.eth.waitForTransactionReceipt(tx_hash)
-                    trade = contract.functions.trades_pending(tradeCount).call()
-                    tradeCount = tradeCount + 1
-                    print('Trade created from', i, 'to', j, 'Here it is:')
+                    trade = contract.functions.trades_pending_mapping(id_set).call()
+                    print('Trade created from', s[0], 'to', b[0], 'Here it is:')
                     print(trade)
-        print("Trades created")
+        print("All trades created")
         #now need to approve trades 
         for i in range(num_agents):
             web3.eth.defaultAccount = web3.eth.accounts[i+1]
@@ -328,17 +331,21 @@ for t in range(0,2):
             today = datetime.date(datetime.now(tz = cat))
             date = str(today)
             trades_pen = contract.functions.trade_penCount().call()
-            for i in range (0, trades_pen):
-                trade = contract.functions.trades_pending(i).call()
+            for k in range (0, trades_pen):
+                trade = contract.functions.trades_pending(k).call()
                 if (trade[3] == msg_sender):
-                    if (trade[9]):
-                        tx_hash1 = contract.functions.approveTrade(trade[0], trade[1], trade[2], trade[3], trade[4], trade[5], trade[6], trade[7], trade[8], trade[9], date, time, i).transact()
-                        web3.eth.waitForTransactionReceipt(tx_hash1)
-                        print("Peer", i+1, "approved optimal trade")
-                        print("Here is the stored approved, optimal trade:")
-                        num_approved = contract.functions.numApprovedTrades().call()
-                        approved = contract.functions.approved(num_approved-1).call()
-                        print(approved)
+                    print('Approving a trade')
+                    #if (trade[9]):
+                    approver = contract.functions.peers(trade[3]).call()
+                    approvee = contract.functions.peers(trade[2]).call()
+                    id_set = approvee[0]*10 + approver[0]
+                    tx_hash1 = contract.functions.approveTrade(trade[0], trade[1], trade[2], trade[3], trade[4], trade[5], trade[6], trade[7], trade[8], trade[9], date, time, id_set).transact()
+                    web3.eth.waitForTransactionReceipt(tx_hash1)
+                    print("Peer", i+1, "approved optimal trade")
+                    print("Here is the stored approved, optimal trade:")
+                    num_approved = contract.functions.numApprovedTrades().call()
+                    approved = contract.functions.approved(num_approved-1).call()
+                    print(approved)
         print("Optimal Trades approved")
         print("Iterations:", contract.functions.iteration().call())
         print("Time period", time_period, "is now over")
