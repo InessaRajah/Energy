@@ -23,46 +23,45 @@ season = 'Summer'
 #loads = [[0.100335206], [0.289092163], [0.074726916], [0.088529768]]
 #loads = [[3.46, 0.83] , [0.289092163, 0.232237399], [0.074726916, 0.006], [0.088529768,  0.048454915]]
 loads = []
-data_path = Path('FebProfiles1.csv')
+data_path = Path('JulyProfiles1.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row1 = data_file[data_file.Time == '2016/02/03']
+row1 = data_file[data_file.Time == '2016/07/01']
 load1 = row1['Proper kWh'].to_list()
 loads.append(load1)
 
-data_path = Path('FebProfiles2.csv')
+data_path = Path('JulyProfiles2.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row2 = data_file[data_file.Time == '2016/02/03']
+row2 = data_file[data_file.Time == '2016/07/01']
 load2 = row2['Proper kWh'].to_list()
 loads.append(load2)
 
-data_path = Path('FebProfiles3.csv')
+data_path = Path('JulyProfiles3.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row3 = data_file[data_file.Time == '2016/02/03']
+row3 = data_file[data_file.Time == '2016/07/01']
 load3 = row3['Proper kWh'].to_list()
 loads.append(load3)
 
-data_path = Path('FebProfiles4.csv')
+data_path = Path('JulyProfiles4.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row4 = data_file[data_file.Time == '2016/02/03']
+row4 = data_file[data_file.Time == '2016/07/01']
 load4 = row4['Proper kWh'].to_list()
 loads.append(load4)
 
-data_path = Path('FebProfiles5.csv')
+data_path = Path('JulyProfiles5.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row5 = data_file[data_file.Time == '2016/02/03']
+row5 = data_file[data_file.Time == '2016/07/01']
 load5 = row5['Proper kWh'].to_list()
 loads.append(load5)
-
 
 
 #list of each agents solar panel number
@@ -80,7 +79,7 @@ data_path = Path('Solar_Radiation_Ordered.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 
-row = data_file[data_file.Date == 20160203]
+row = data_file[data_file.Date == 20160201]
 solar = row['G'].to_list()
 print('Solar for 01/02/2016:', solar)
 
@@ -102,24 +101,25 @@ SOC_min = 0.25*3.7
 num_agents = len(solar_panels)
 
 #starting SOC_bat for all agents
-#SOC_bat = 0.7*3.7*np.ones([num_agents, 1])
+SOC_bat = 0.7*3.7*np.ones([num_agents, 1])
 
 #get battery SOC data from the previous day 
-data_path = Path('SOC_Tests.csv')
-data_file = pd.read_csv(data_path)
-data_file = pd.DataFrame(data_file)
-SOC = data_file[data_file.Time_Period == 23]
-SOC = SOC['SOC (%)'].to_list()
+#data_path = Path('SOC_Tests.csv')
+#data_file = pd.read_csv(data_path)
+#data_file = pd.DataFrame(data_file)
+#SOC = data_file[data_file.Time_Period == 23]
+#SOC = SOC['SOC (%)'].to_list()
 #num_agents = 5
-SOC_bat = np.zeros([num_agents, 1])
+#SOC_bat = np.zeros([num_agents, 1])
 
 
-for i in range(num_agents):
-    SOC_bat[i] = SOC[i]/100 * 3.7
+#for i in range(num_agents):
+#    SOC_bat[i] = SOC[i]/100 * 3.7
 
-print('Starting SOC:', SOC_bat)
 #create dataframes to store info you'd like to save to .csv files
 TradesDF = pd.DataFrame(columns=['Agent#','Time Period', 'TradeID', 'Quantity (kWh)', 'Price (c/kWh)', 'Avg. Price for Time Period (c/kwh)', 'Amount paid/received for Trade Transaction (c)'])
+PowerPointsDF = pd.DataFrame(columns = ['Agent#', 'Time Period', 'Battery Charge (kWh)', 'Grid Export (kWh)', 'Grid Household Load (kWh)', 'Battery Discharge (kWh)', 'Solar Output (kWh)', 'Grid Import (kWh)', 'Social Welfare (R)'])
+TotalSocialWelfareDF = pd.DataFrame(columns = ['Time Period', 'Total Social Welfare (R/kwh)'])
 SolarDF = pd.DataFrame(columns=['Agent#','Time Period', 'Solar Irradiation (W/m^2)', 'Num_solar panels', 'Solar Output energy (kWh)'])
 SOC_DF = pd.DataFrame(columns=['Agent#', 'Time Period', 'SOC (%)'])
 Metrics_DF = pd.DataFrame(columns = ['Time Period', 'Num Iterations', 'Time (s)'])
@@ -194,6 +194,9 @@ for t in range(len(hours)):
     Price_avg = Prices[Prices!=0].mean()
     print("Avg Price:", Price_avg)
     SW = sum([players[i].SW for i in range(num_agents)])
+    ind_row = TotalSocialWelfareDF.shape[0]
+    TotalSocialWelfareDF.loc[ind_row, 'Time Period'] = time_period
+    TotalSocialWelfareDF[ind_row, 'Total Social Welfare (R/kwh)'] = SW
     print("Total Social Welfare:", SW)
     print(iteration)
     if iteration == 1000:
@@ -243,6 +246,7 @@ for t in range(len(hours)):
     pbc = np.asarray(pbc)
     #update state of all batteries
     SOC_bat = SOC_bat - pbc*0.99 - pbd*0.99
+    PowerPointsDF = func.createPowerPoints(players, time_period, PowerPointsDF)
     TradesDF = func.createTradeFile(players, TradesDF, time_period, Price_avg, part)
     SOC_DF = func.createSOCFile(SOC_bat, SOC_DF, time_period)
     Metrics_DF = func.createMetricsFile(Metrics_DF, simulation_time, time_period, iteration)
@@ -268,3 +272,4 @@ SolarDF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisati
 SOC_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\SOC_Tests.csv')
 Metrics_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Overall Optimisation Metrics Test.csv') 
 Price_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Average Trading Prices.csv')
+PowerPointsDF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Power Set Points.csv')
