@@ -17,55 +17,57 @@ agents = []
 suboptimal = 0
 
 #set the season being considered
-season = 'Summer'
+season = 'Winter'
 
 #list of loads[i][j] where i = agent number and j = time_period
 #loads = [[0.100335206], [0.289092163], [0.074726916], [0.088529768]]
 #loads = [[3.46, 0.83] , [0.289092163, 0.232237399], [0.074726916, 0.006], [0.088529768,  0.048454915]]
 loads = []
-data_path = Path('JulyProfiles1.csv')
+data_path = Path('FebProfiles1.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row1 = data_file[data_file.Time == '2016/07/01']
+row1 = data_file[data_file.Time == '2016/02/07']
 load1 = row1['Proper kWh'].to_list()
 loads.append(load1)
 
-data_path = Path('JulyProfiles2.csv')
+data_path = Path('FebProfiles2.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row2 = data_file[data_file.Time == '2016/07/01']
+row2 = data_file[data_file.Time == '2016/02/07']
 load2 = row2['Proper kWh'].to_list()
 loads.append(load2)
 
-data_path = Path('JulyProfiles3.csv')
+data_path = Path('FebProfiles3.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row3 = data_file[data_file.Time == '2016/07/01']
+row3 = data_file[data_file.Time == '2016/02/07']
 load3 = row3['Proper kWh'].to_list()
 loads.append(load3)
 
-data_path = Path('JulyProfiles4.csv')
+data_path = Path('FebProfiles4.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row4 = data_file[data_file.Time == '2016/07/01']
+row4 = data_file[data_file.Time == '2016/02/07']
 load4 = row4['Proper kWh'].to_list()
 loads.append(load4)
 
-data_path = Path('JulyProfiles5.csv')
+data_path = Path('FebProfiles5.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 data_file = data_file.drop(columns = ['Electricity.Timestep', 'Sum', '[kWh]'])
-row5 = data_file[data_file.Time == '2016/07/01']
+row5 = data_file[data_file.Time == '2016/02/07']
 load5 = row5['Proper kWh'].to_list()
 loads.append(load5)
 
 
 #list of each agents solar panel number
+#solar_panels = [7, 7, 5, 1, 4]
 solar_panels = [7, 7, 5, 1, 4]
+
 
 # grid tariff structure
 grid_price = {'Summer': {'Peak': 172.68, 'Standard': 136.60, 'Off-peak': 107.46}, 'Winter': {'Peak': 397.27, 'Standard': 162.74, 'Off-peak': 114.83}}
@@ -79,9 +81,9 @@ data_path = Path('Solar_Radiation_Ordered.csv')
 data_file = pd.read_csv(data_path)
 data_file = pd.DataFrame(data_file)
 
-row = data_file[data_file.Date == 20160201]
+row = data_file[data_file.Date == 20160707]
 solar = row['G'].to_list()
-print('Solar for 01/02/2016:', solar)
+print('Solar for 01/07/2016:', solar)
 
 #k_tim is the grid c/kwh price for a time period- looking at Standard time period in Summer here.  This is updated in the for loop
 k_tim = 136.60
@@ -101,20 +103,20 @@ SOC_min = 0.25*3.7
 num_agents = len(solar_panels)
 
 #starting SOC_bat for all agents
-SOC_bat = 0.7*3.7*np.ones([num_agents, 1])
+#SOC_bat = 0.7*3.7*np.ones([num_agents, 1])
 
-#get battery SOC data from the previous day 
-#data_path = Path('SOC_Tests.csv')
-#data_file = pd.read_csv(data_path)
-#data_file = pd.DataFrame(data_file)
-#SOC = data_file[data_file.Time_Period == 23]
-#SOC = SOC['SOC (%)'].to_list()
-#num_agents = 5
-#SOC_bat = np.zeros([num_agents, 1])
+# #get battery SOC data from the previous day 
+data_path = Path('SOC_Tests.csv')
+data_file = pd.read_csv(data_path)
+data_file = pd.DataFrame(data_file)
+SOC = data_file[data_file.Time_Period == 23]
+SOC = SOC['SOC (%)'].to_list()
+num_agents = 5
+SOC_bat = np.zeros([num_agents, 1])
 
 
-#for i in range(num_agents):
-#    SOC_bat[i] = SOC[i]/100 * 3.7
+for i in range(num_agents):
+   SOC_bat[i] = SOC[i]/100 * 3.7
 
 #create dataframes to store info you'd like to save to .csv files
 TradesDF = pd.DataFrame(columns=['Agent#','Time Period', 'TradeID', 'Quantity (kWh)', 'Price (c/kWh)', 'Avg. Price for Time Period (c/kwh)', 'Amount paid/received for Trade Transaction (c)'])
@@ -129,7 +131,7 @@ for t in range(len(hours)):
     agents = []
     time_period = hours[t]
     tim = time_classification[t]
-    k_tim = grid_price[season][tim]
+    k_tim = grid_price[season][tim] * 0.9
     print(k_tim)
     print(SOC_bat)
     for i in range(num_agents):
@@ -183,6 +185,9 @@ for t in range(len(hours)):
             #print('Primal res', players[i].Res_primal)
             #print('Dual res', players[i].Res_dual)
             Prices[:,i][part[i,:].nonzero()] = players[i].y
+        temp = temp*10000
+        temp = np.round(temp, 0)
+        temp = temp / 10000
         Trades = np.copy(temp)
         prim = sum([players[i].Res_primal for i in range(num_agents)])
         test_prim = sum(round(players[i].Res_primal * 10000) for i in range(num_agents))
@@ -196,46 +201,46 @@ for t in range(len(hours)):
     SW = sum([players[i].SW for i in range(num_agents)])
     ind_row = TotalSocialWelfareDF.shape[0]
     TotalSocialWelfareDF.loc[ind_row, 'Time Period'] = time_period
-    TotalSocialWelfareDF[ind_row, 'Total Social Welfare (R/kwh)'] = SW
+    TotalSocialWelfareDF.loc[ind_row, 'Total Social Welfare (R/kwh)'] = SW
     print("Total Social Welfare:", SW)
     print(iteration)
     if iteration == 1000:
         suboptimal = suboptimal + 1
-    print(prim)
-    print(dual)
-    print(players[0].variables.t)
-    print(players[1].variables.t)
-    print(players[2].variables.t)
-    print(players[3].variables.t)
-    print(players[0].y[0])
-    print("prosumer0 battery charge", players[0].variables.p[0])
-    print("prosumer0 grid export", players[0].variables.p[1])
-    print("prosumer0 grid household load", players[0].variables.p[2])
-    print("prosumer0 battery discharge", players[0].variables.p[3])
-    print("prosumer0 solar", players[0].variables.p[4])
-    print("prosumer0 grid import", players[0].variables.p[5])
-    #print(players[1].variables.p)
-    print("######################################")
-    print("prosumer1 battery charge", players[1].variables.p[0])
-    print("prosumer1 grid export", players[1].variables.p[1])
-    print("prosumer1 grid household load", players[1].variables.p[2])
-    print("prosumer1 battery discharge", players[1].variables.p[3].x)
-    print("prosumer1 solar", players[1].variables.p[4])
-    print("prosumer1 grid import", players[1].variables.p[5])
-    print("######################################")
-    print("prosumer2 battery charge", players[2].variables.p[0])
-    print("prosumer2 grid export", players[2].variables.p[1])
-    print("prosumer2 grid household load", players[2].variables.p[2])
-    print("prosumer2 battery discharge", players[2].variables.p[3])
-    print("prosumer2 solar", players[2].variables.p[4])
-    print("prosumer2 grid import", players[2].variables.p[5])
-    print("######################################")
-    print("prosumer3 battery charge", players[3].variables.p[0])
-    print("prosumer3 grid export", players[3].variables.p[1])
-    print("prosumer3 grid household load", players[3].variables.p[2])
-    print("prosumer3 battery discharge", players[3].variables.p[3])
-    print("prosumer3 solar", players[3].variables.p[4])
-    print("prosumer3 grid import", players[3].variables.p[5])
+    # print(prim)
+    # print(dual)
+    # print(players[0].variables.t)
+    # print(players[1].variables.t)
+    # print(players[2].variables.t)
+    # print(players[3].variables.t)
+    # print(players[0].y[0])
+    # print("prosumer0 battery charge", players[0].variables.p[0])
+    # print("prosumer0 grid export", players[0].variables.p[1])
+    # print("prosumer0 grid household load", players[0].variables.p[2])
+    # print("prosumer0 battery discharge", players[0].variables.p[3])
+    # print("prosumer0 solar", players[0].variables.p[4])
+    # print("prosumer0 grid import", players[0].variables.p[5])
+    # #print(players[1].variables.p)
+    # print("######################################")
+    # print("prosumer1 battery charge", players[1].variables.p[0])
+    # print("prosumer1 grid export", players[1].variables.p[1])
+    # print("prosumer1 grid household load", players[1].variables.p[2])
+    # print("prosumer1 battery discharge", players[1].variables.p[3].x)
+    # print("prosumer1 solar", players[1].variables.p[4])
+    # print("prosumer1 grid import", players[1].variables.p[5])
+    # print("######################################")
+    # print("prosumer2 battery charge", players[2].variables.p[0])
+    # print("prosumer2 grid export", players[2].variables.p[1])
+    # print("prosumer2 grid household load", players[2].variables.p[2])
+    # print("prosumer2 battery discharge", players[2].variables.p[3])
+    # print("prosumer2 solar", players[2].variables.p[4])
+    # print("prosumer2 grid import", players[2].variables.p[5])
+    # print("######################################")
+    # print("prosumer3 battery charge", players[3].variables.p[0])
+    # print("prosumer3 grid export", players[3].variables.p[1])
+    # print("prosumer3 grid household load", players[3].variables.p[2])
+    # print("prosumer3 battery discharge", players[3].variables.p[3])
+    # print("prosumer3 solar", players[3].variables.p[4])
+    # print("prosumer3 grid import", players[3].variables.p[5])
     print(simulation_time)
     pbd = []
     pbc = []
@@ -254,8 +259,8 @@ for t in range(len(hours)):
     Price_DF.loc[ind_row, 'Time Period'] = time_period
     Price_DF.loc[ind_row, 'Avg Price (c/kwh)'] = Price_avg*100
 
-    #print('Test global prim_res', test_prim)
-    #print('Test global dual_res', test_dual)
+    print('Test global prim_res', test_prim)
+    print('Test global dual_res', test_dual)
 
 
 
@@ -273,3 +278,4 @@ SOC_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisatio
 Metrics_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Overall Optimisation Metrics Test.csv') 
 Price_DF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Average Trading Prices.csv')
 PowerPointsDF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Power Set Points.csv')
+TotalSocialWelfareDF.to_csv(r'C:\Users\Inessa\Desktop\4th_Year\FYP\Methodology_Eth\optimisation\Final optimisation\Results\Social Welfare.csv')

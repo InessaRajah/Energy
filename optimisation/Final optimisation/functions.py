@@ -27,8 +27,8 @@ def createAssets(assets_con, assets_prod, k):
                 a = 0
                 b = 0
                 ub = 0
-                lb = -10
-                asset_list[i] = {'Type': con_asset['Type'], 'a': a, 'b': b, 'ub': ub, 'lb': lb}
+                lb = assets_con[1]['Upper Production']
+                asset_list[i] = {'Type': con_asset['Type'], 'a': a, 'b': b, 'ub': ub, 'lb': lb[0]}
         else:
                 Pri_min = con_asset['Lower Price']
                 Pri_min = np.asarray(Pri_min)
@@ -141,10 +141,10 @@ def UtilityCurvesGenPro(Pri_min, Pri_max, Pmax, Pmin):
 
 
     #for each agent in each time period, need to assign BatterCharge[Upper Consumption], Solar[Lower Production] = Solar[Upper Production] and HouseholdLoad[]
-assets_con_temp = {0: {'Type': 'BatteryCharge', 'Lower Price': [11.0, 13.5], 'Upper Price': [14.5, 17.0], 'Lower Consumption': [0, 0.1], 'Upper Consumption': []}, 
+assets_con_temp = {0: {'Type': 'BatteryCharge', 'Lower Price': [80, 90], 'Upper Price': [100, 111], 'Lower Consumption': [0, 0.1], 'Upper Consumption': []}, 
             1: {'Type': 'GridExport', 'Lower Price': [0], 'Upper Price': [0], 'Lower Production': [0], 'Upper Production': [10]},
             2: {'Type': 'HouseholdLoad', 'Lower Price': [101, 107], 'Upper Price': [107.36, 107.46], 'Lower Consumption': [], 'Upper Consumption': []}}
-assets_prod_temp = {0: {'Type': 'BatteryDischarge', 'Lower Price': [11.0, 13.5], 'Upper Price': [14.5, 17.0], 'Lower Production': [0, 0.0001], 'Upper Production': [0.36, 0.37]},
+assets_prod_temp = {0: {'Type': 'BatteryDischarge', 'Lower Price': [80, 90], 'Upper Price': [100, 111], 'Lower Production': [0, 0.0001], 'Upper Production': [0.36, 0.37]},
             1: {'Type': 'Solar', 'Lower Price': [0], 'Upper Price': [0], 'Lower Production': [], 'Upper Production': []},
             2: {'Type': 'GridImport', 'Lower Price': [107.46, 136.60], 'Upper Price': [136.61, 172.66], 'Lower Production': [0, 0], 'Upper Production': [10, 10.0001]}} #GridImport cost function based on ranges of grid price depending on Time of Use in Summer
 
@@ -153,12 +153,16 @@ def createParameters(load, SOC_bat, solar_num, solar, time_period):
     assets_con = assets_con_temp
     assets_prod = assets_prod_temp
 
-
     #battery charging upper consumption
     max_charge = SOC_max - SOC_bat
     max_charge_temp = [round((max_charge*0.9), 2), round(max_charge, 2)]
     assets_con[0]['Upper Consumption'] = max_charge_temp
 
+    #trying to set max discharge
+    max_discharge  = SOC_bat - (0.55*3.7)
+    max_discharge_temp = [round((max_discharge*0.9), 2), round(max_discharge, 2)]
+    assets_prod[0]['Upper Production'] = max_discharge_temp
+    
     #set household load upper and lower consumption
     lower = [load*0.9, load - 0.0000000005]
     upper = [load, load*1.1]
@@ -177,12 +181,14 @@ def createAgent(load, SOC_bat, solar_num, existing_agents, solar, time_period, k
     assets_con, assets_prod = createParameters(load, SOC_bat, solar_num, solar, time_period)
     if (solar_num):
         Type = 'Prosumer'
+        assets_con[1]['Upper Production'] = [-10]
     else:
         Type = 'Consumer'
         assets_prod[0]['Lower Production'] = [0, 0.0001]
         assets_prod[0]['Upper Production'] =[0.00011, 0.00012]
         assets_con[0]['Lower Consumption'] =[0, 0.0001]
         assets_con[0]['Upper Consumption'] = [0.00011, 0.00012]
+        assets_con[1]['Upper Production'] = [0]
     #print(assets_con)
     #print(assets_prod)
     agents = existing_agents
@@ -216,13 +222,13 @@ def createTradeFile(players, Trades, time_period, avg_price, part):
         trades = players[i].variables.t
         partners = part[i].nonzero()[0]
         for j in range(num_trades):
-            Trades.loc[ind_row_current, 'Agent#'] = "agent" + str(i)
+            Trades.loc[ind_row_current, 'Agent#'] = "agent" + str(i+1)
             Trades.loc[ind_row_current, 'Time Period'] = time_period
-            Trades.loc[ind_row_current, 'TradeID'] = str(i) + str(partners[j])
+            Trades.loc[ind_row_current, 'TradeID'] = str(i+1) + str(partners[j]+1)
             Trades.loc[ind_row_current, 'Quantity (kWh)'] = trades[j].x
-            Trades.loc[ind_row_current, 'Price (c/kWh)'] = players[i].y[j]
+            Trades.loc[ind_row_current, 'Price (c/kWh)'] = players[i].y[j]*100
             Trades.loc[ind_row_current, 'Avg. Price for Time Period (c/kwh)'] = avg_price*100
-            Trades.loc[ind_row_current, 'Amount paid/received for Trade Transaction (c)'] = (avg_price/100)*trades[j].x
+            Trades.loc[ind_row_current, 'Amount paid/received for Trade Transaction (c)'] = (avg_price)*100*trades[j].x
             ind_row_current = ind_row_current + 1
     return Trades
 
@@ -230,7 +236,7 @@ def createTradeFile(players, Trades, time_period, avg_price, part):
 def createSolarFile(agent, time_period, solar, SOC_bat, solar_panels, Solar):
     ind_row_current = Solar.shape[0]
     agent_num = agent['Index']
-    Solar.loc[ind_row_current, 'Agent#'] = "agent"+str(agent_num)
+    Solar.loc[ind_row_current, 'Agent#'] = "agent"+str(agent_num+1)
     Solar.loc[ind_row_current, 'Time Period'] = time_period
     Solar.loc[ind_row_current, 'Solar Irradiation (W/m^2)'] = solar[time_period]
     Solar.loc[ind_row_current, 'Num_solar panels'] = solar_panels
@@ -243,8 +249,38 @@ def createSOCFile(SOC_bat, SOC_DF, time_period):
     num_agents = len(SOC_bat)
     print(SOC_bat)
     for i in range(num_agents):
-        SOC_DF.loc[ind_row_current, 'Agent#'] = 'agent'+str(i)
-        SOC_DF.loc[ind_row_current, 'Time Period'] = time_period
+        SOC_DF.loc[ind_row_current, 'Agent#'] = 'agent'+str(i+1)
+        SOC_DF.loc[ind_row_current, 'Time_Period'] = time_period
         SOC_DF.loc[ind_row_current, 'SOC (%)'] = (SOC_bat[i][0])/3.7 * 100
         ind_row_current= ind_row_current+1
     return SOC_DF
+
+
+def createMetricsFile(Metrics_DF, simulation_time, time_period, iteration):
+    ind_row_current = Metrics_DF.shape[0]
+    Metrics_DF.loc[ind_row_current, 'Time Period'] = time_period
+    Metrics_DF.loc[ind_row_current, 'Num Iterations'] = iteration
+    Metrics_DF.loc[ind_row_current, 'Time (s)'] = simulation_time
+
+    return Metrics_DF
+
+#PowerPointsDF = pd.DataFrame(columns = ['Agent#', 'Time Period', 'Battery Charge (kWh)', 'Grid Export (kWh)', 'Grid Household Load (kWh)', 'Battery Discharge (kWh)', 'Solar Output (kWh)', 'Grid Import (kWh)'])
+def createPowerPoints(players, time_period, PowerPointsDF):
+    ind_row_current = PowerPointsDF.shape[0]
+    num_agents = len(players)
+    for i in range(num_agents):
+        p = players[i].variables.p
+        PowerPointsDF.loc[ind_row_current, 'Agent#'] = 'agent' + str(i+1)
+        PowerPointsDF.loc[ind_row_current, 'Time Period'] = time_period
+        PowerPointsDF.loc[ind_row_current, 'Battery Charge (kWh)'] = p[0].x
+        PowerPointsDF.loc[ind_row_current, 'Grid Export (kWh)'] = p[1].x
+        PowerPointsDF.loc[ind_row_current, 'Grid Household Load (kWh)'] = p[2].x
+        PowerPointsDF.loc[ind_row_current, 'Battery Discharge (kWh)'] = p[3].x
+        PowerPointsDF.loc[ind_row_current, 'Solar Output (kWh)'] = p[4].x
+        PowerPointsDF.loc[ind_row_current, 'Grid Import (kWh)'] = p[5].x
+        PowerPointsDF.loc[ind_row_current,   'Social Welfare (R)'] = players[i].SW
+        ind_row_current = ind_row_current + 1
+
+    return PowerPointsDF
+
+
