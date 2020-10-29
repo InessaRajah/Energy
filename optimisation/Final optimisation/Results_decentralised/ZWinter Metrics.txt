@@ -1,8 +1,0 @@
-WinterStarting Days:
-Load Profiles: 01/02/2016 (Northern Hemisphere Winter)
-Solar Data: 01/07/2016 (Southern Hemisphere Winter)
-
-Chosen metrics:
-- 5 houses [7] uses 5, the South African guy only considers two buildings, [31] considers 3
-- all prosumers with PV panels and batteries of the same size but different generation capacities: [7, 7, 5, 1, 4] (realistic- solar panels are cheaper than batteries)
-- k_tim set to 0.9 of the grid price to ensure lower prices
